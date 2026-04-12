@@ -119,7 +119,7 @@ def draw_ui(stdscr, chat_win, input_win, messages, input_buffer):
 
 def main(stdscr):
     # Draw the cursor
-    curses.curs_set(1)
+    curses.curs_set(0)
     # getch() becomes non blocking
     stdscr.nodelay(True)
     h, w = stdscr.getmaxyx()

