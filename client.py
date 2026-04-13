@@ -1,14 +1,12 @@
 import socket
 import threading
-import curses
 import time
 import queue
-import textwrap
 
 import special_interface
 
 HOST = '5.tcp.eu.ngrok.io'
-PORT = 16559
+PORT = 14003
 
 class ChatClient:
     def __init__(self, host, port):
@@ -69,115 +67,12 @@ class ChatClient:
             except Exception:
                 break
 
-def update_messages(client, messages):
-    try:
-        while True:
-            messages.append(client.incoming_queue.get_nowait())
-    except queue.Empty:
-        pass
+client = ChatClient(HOST, PORT)
+messages = []
 
-def handle_resize(key, stdscr, chat_win, input_win):
-    if key == curses.KEY_RESIZE:
-        curses.update_lines_cols()
-        h, w = stdscr.getmaxyx()
-
-        stdscr.clear()
-        stdscr.refresh()
-
-        # Safety : no negative or null change
-        safe_h_chat = max(1, h - 2)
-        safe_w = max(1, w)
-        safe_y_input = max(0, h - 1)
-
-        try:
-            chat_win.resize(safe_h_chat, safe_w)
-            input_win.mvwin(safe_y_input, 0)
-            input_win.resize(1, safe_w)
-        except curses.error:
-            pass
-
-def handle_keypress(key, input_buffer, client, messages):
-    if key in (curses.KEY_ENTER, 10, 13):
-        if not input_buffer:
-            return ""
-        if input_buffer.lower() in ("quit", "exit"):
-            return "EXIT_CMD"
-
-        messages.append(f"Client: {input_buffer}")
-        client.outgoing_queue.put(input_buffer)
-        return ""
-
-    if key in (curses.KEY_BACKSPACE, 127, 8):
-        return input_buffer[:-1]
-
-    if 32 <= key <= 126:
-        return input_buffer + chr(key)
-
-    return input_buffer
-
-def draw_ui(stdscr, chat_win, input_win, messages, input_buffer):
-    h, w = stdscr.getmaxyx()
-    
-    lines = []
-
-    safe_w = max(1, w - 1)
-    safe_h_chat = max(1, h - 2)
-
-    for msg in messages:
-        wrapped_msg = textwrap.wrap(msg, width=safe_w)
-        lines.extend(wrapped_msg)
-
-    chat_win.erase()
-    for i, msg in enumerate(lines[-safe_h_chat:]):
-        try:
-            chat_win.addstr(i, 0, msg[:safe_w-1])
-        except Exception:
-            pass
-    chat_win.refresh()
-
-    input_win.erase()
-    input_win.addstr(0, 0, f">> {input_buffer}"[:safe_w-1])
-    input_win.refresh()
-
-def main(stdscr):
-    curses.curs_set(1)
-    stdscr.nodelay(True)
-    h, w = stdscr.getmaxyx()
-
-    chat_win = curses.newwin(h - 2, w, 0, 0)
-    input_win = curses.newwin(1, w, h - 1, 0)
-
-    chat_win.idlok(True)
-    chat_win.scrollok(True)
-
-    client = ChatClient(HOST, PORT)
-    messages = ["Welcome to ChatCLI"]
-    input_buffer = ""
-
-    draw_ui(stdscr, chat_win, input_win, messages, input_buffer)
-
-    if not client.connect():
-        update_messages(client, messages)
-        draw_ui(stdscr, chat_win, input_win, messages, "Press a key to quit")
-        stdscr.nodelay(False)
-        stdscr.getch()
-        return
-
-    try:
-        while client.running:
-            update_messages(client, messages)
-
-            key = stdscr.getch()
-            if key != -1:
-                handle_resize(key, stdscr, chat_win, input_win)
-                input_buffer = handle_keypress(key, input_buffer, client, messages)
-                if input_buffer == "EXIT_CMD":
-                    break
-
-            draw_ui(stdscr, chat_win, input_win, messages, input_buffer)
-            time.sleep(0.016)
-    finally:
-        client.stop()
-
-if __name__ == "__main__":
-    curses.wrapper(main)
+try:
+    client.connect()
+    while client.running:
+        time.sleep(0.016)
+finally:
+    client.stop()
