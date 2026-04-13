@@ -34,5 +34,5 @@ class SpecialInterface:
 
 if __name__ == "__main__":
     special_interface = SpecialInterface()
-    special_interface.where_am_i()
-    print(special_interface.current_location)
+    special_interface.go("ls")
+    special_interface.result
